@@ -9,8 +9,8 @@ pygame.display.set_caption("Platformer")
 clock = pygame.time.Clock()
 
 try:
-    font = pygame.font.Font('FNAF Pixel One.zip',32)
-    big_font = pygame.font.Font('FNAF Pixel One.zip',64)
+    font = pygame.font.Font('PakenhamBl Italic.ttf',32)
+    big_font = pygame.font.Font('PakenhamBl Italic.ttf',64)
 except:
     font = pygame.font.Font(None, 32)
     big_font = pygame.font.Font(None, 64)
@@ -30,10 +30,10 @@ class Platform:
 
 class Coin:
     def __init__(self,x,y):
-        self.rect = pygame.Rect(x, y, 30, 30)
+        self.rect = pygame.Rect(x, y, 10, 10)
 
     def draw(self, surf, camera_x = 0):
-        pygame.draw.circle(surf,(73, 31, 115), (self.rect.centrex - camera_x,self.rect.centery),20)
+        pygame.draw.circle(surf,(73, 31, 115), (self.rect.centerx - camera_x,self.rect.centery),20)
 
 class Enemy:
     def __init__(self,x,y,left_limit,right_limit):
@@ -42,6 +42,15 @@ class Enemy:
         self.dir = 1
         self.left_limit = left_limit
         self.right_limit = right_limit
+
+    def update(self):
+        self.rect.x += self.speed * self.dir
+
+        if self.rect.left <= self.left_limit or self.rect.right >= self.right_limit:
+            self.dir *= -1
+
+    def draw(self,surf,camera_x = 0):
+        pygame.draw.rect(surf,(220,70,70),(self.rect.x - camera_x,self.rect.y,self.rect.w,self.rect.h))
 
 class Player:
     def __init__(self):
@@ -78,8 +87,8 @@ class Player:
         self.rect.x += dx
 
         #не уходит за левую границу
-        if self.rect.left<0:
-            self.rect.left = 0
+        if self.rect.left > LEVEL_WIDTH:
+            self.rect.left = LEVEL_WIDTH
 
         #граница мира
         if self.rect.right>LEVEL_WIDTH:
@@ -109,3 +118,39 @@ class Player:
         if self.invuln > 0 and (self.invuln % 10) < 5:
             return
         pygame.draw.rect(surf,(80,140,225), (self.rect.x - camera_x,self.rect.y,self.rect.w,self.rect.h))
+
+class Game:
+    def __init__(self):
+        self.reset()
+    def reset(self):
+        self.player = Player()
+        self.platforms = [
+            Platform(0,HEIGHT - 40,LEVEL_WIDTH,40),
+
+            Platform(140,330,180,20),
+            Platform(380,260,160,20),
+            Platform(610,320,140,20),
+
+            Platform(900,300,200,20),
+            Platform(1200,250,200,20),
+            Platform(1500,380,220,20),
+            Platform(1800,280,220,20)
+        ]
+        self.coins = [
+            Coin(200,300),
+            Coin(430,230),
+            Coin(660,290),
+
+            Coin(980,270),
+            Coin(1260,220),
+            Coin(1560,310),
+            Coin(1900,250)
+        ]
+        self.enemies = [
+            Enemy(170,290,140,320),
+            Enemy(420,220,380,540),
+
+            Enemy(930,260,900,1100),
+            Enemy(1530,300,1500,1680)
+        ]
+        self.score = 0
