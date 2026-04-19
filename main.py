@@ -31,9 +31,21 @@ class Platform:
 class Coin:
     def __init__(self,x,y):
         self.rect = pygame.Rect(x, y, 10, 10)
+        self.timer = 0
+        self.frame = 0
+
+    def update(self):
+        self.timer += 2
+
+        if self.timer >= 20:
+            self.timer = 0
+            self.frame += 1
+
+            if self.frame >= len(coin_frames):
+                self.frame = 0
 
     def draw(self, surf, camera_x = 0):
-        pygame.draw.circle(surf,(73, 31, 115), (self.rect.centerx - camera_x,self.rect.centery),20)
+        surf.blit(coin_frames[self.frame],(self.rect.x - camera_x,self.rect.y))
 
 class Enemy:
     def __init__(self,x,y,left_limit,right_limit):
@@ -87,8 +99,8 @@ class Player:
         self.rect.x += dx
 
         #не уходит за левую границу
-        if self.rect.left > LEVEL_WIDTH:
-            self.rect.left = LEVEL_WIDTH
+        if self.rect.left < 0:
+            self.rect.left = 0
 
         #граница мира
         if self.rect.right>LEVEL_WIDTH:
@@ -121,6 +133,7 @@ class Player:
 
 class Game:
     def __init__(self):
+        self.lives = 3
         self.reset()
     def reset(self):
         self.player = Player()
@@ -153,4 +166,109 @@ class Game:
             Enemy(930,260,900,1100),
             Enemy(1530,300,1500,1680)
         ]
+        #счёт
         self.score = 0
+
+        self.game_over = False
+        #камера
+        self.camera_x = 0
+        #финиш
+        self.finish = pygame.Rect(2050,HEIGHT - 100,40,60)
+
+    def collect_coins(self):
+        for c in self.coins[:]:
+            if self.player.rect.colliderect(c.rect):
+                self.coins.remove(c)
+                self.score +=1
+
+    def lives(self):
+        for l in self.lives:
+            if self.player.rect.colliderect(e.rect):
+                self.lives.remove(l)
+                self.lives -=1
+
+    def enemy_hits(self):
+        for e in self.enemies:
+            if self.player.rect.colliderect(e.rect):
+                 self.player.hit()
+
+    def check_finish(self):
+        if self.player.rect.colliderect(self.finish):
+            self.game_over = True
+
+    def update_camera(self):
+        self.camera_x = max(0, min(self.player.rect.centerx - WIDTH // 2,LEVEL_WIDTH - WIDTH))
+
+    def run(self):
+        running = True
+
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE and not self.game_over:
+                       self.player.jump()
+
+                    if event.key == pygame.K_r and self.game_over:
+                        self.reset()
+            if not self.game_over:
+                self.player.update(self.platforms)
+
+                for e in self.enemies:
+                    e.update()
+
+                self.enemy_hits()
+                self.collect_coins()
+                self.check_finish()
+
+                if self.player.lives <= 0:
+                    self.game_over = True
+
+                self.update_camera()
+
+            screen.fill((135,206,236))
+
+            for p in self.platforms:
+                p.draw(screen,self.camera_x)
+
+            for c in self.coins:
+                c.update()
+                c.draw(screen,self.camera_x)
+
+            for e in self.enemies:
+                e.draw(screen,self.camera_x)
+
+            pygame.draw.rect(screen,(200,200,200), (self.finish.x - self.camera_x,self.finish.y,self.finish.w,self.finish.h))
+
+            self.player.draw(screen,self.camera_x)
+
+            screen.blit(font.render(f"Score: {self.score}",True,(0,0,0)),(10,10))
+            screen.blit(font.render(f"Lives: {self.lives}", True, (0,0,0)),(10, 40))
+
+            if self.game_over:
+                t1 = big_font.render("Game Over", True,(200,0,0))
+                t2 = font.render('Rress R to restart', True,(0,0,0))
+
+                screen.blit(t1, t1.get_rect(center=(WIDTH // 2,HEIGHT // 2 - 20)))
+                screen.blit(t2, t2.get_rect(center=(WIDTH // 2,HEIGHT // 2 + 25)))
+
+            pygame.display.flip()
+            clock.tick(60)
+        pygame.quit()
+        sys.exit()
+
+coin_frames = [
+    pygame.transform.scale(pygame.image.load('assets/images/coin1.png').convert_alpha(),(20,20)),
+    pygame.transform.scale(pygame.image.load('assets/images/coin2.png').convert_alpha(),(20,20)),
+    pygame.transform.scale(pygame.image.load('assets/images/coin3.png').convert_alpha(),(20,20)),
+    pygame.transform.scale(pygame.image.load('assets/images/coin4.png').convert_alpha(),(20,20))
+]
+
+enemy_frames = [
+    pygame.transform.scale(pygame.image.load('assets/images/pig.png').convert_alpha(),(100,100)),
+    pygame.transform.scale(pygame.image.load('assets/images/images.png').convert_alpha(),(100,100))
+]
+
+Game().run()
